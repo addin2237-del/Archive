@@ -90,6 +90,8 @@ for (const [key, f] of Object.entries(found)) {
   else report.notes.push(`${key}: 검색 응답에서 '법령일련번호' 키를 찾지 못함 — raw/search-eflaw-${key} 확인`);
   if (f.lawId && f.efYd) push(await call(`service-eflaw-${key}-by-id-efyd`, 'lawService.do', { target: 'eflaw', ID: String(f.lawId), efYd: String(f.efYd) }));
 }
+// 2-1) 법령ID 필터(LID) 파라미터가 실제로 동작하는지 (설계상 가정)
+if (found.law?.lawId) push(await call('search-eflaw-law-by-lid', 'lawSearch.do', { target: 'eflaw', LID: String(found.law.lawId), display: '100' }));
 // 3) 일반 법령(공포일 기준) 검색과 비교
 push(await call('search-law-law', 'lawSearch.do', { target: 'law', query: '건축법' }));
 

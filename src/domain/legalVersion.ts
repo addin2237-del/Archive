@@ -1,9 +1,11 @@
+import { isValidIsoDate } from '../types/ids';
+import type { IsoDate } from '../types/ids';
 import type { LawVersionRef } from '../types/legal';
 
 /** 오늘 날짜(YYYY-MM-DD, Asia/Seoul). 기준일이 없을 때의 기본값. */
-export const todaySeoul = (now: Date = new Date()): string => now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+export const todaySeoul = (now: Date = new Date()): IsoDate => now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }) as IsoDate;
 
-export const isIsoDate = (s: string): boolean => /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s));
+export const isIsoDate = isValidIsoDate;
 
 export type VersionPick =
   | { status: 'ok'; version: LawVersionRef; pending: LawVersionRef[] }
@@ -15,7 +17,7 @@ export type VersionPick =
  * 기준일 이후 시행 예정 버전은 pending으로 분리한다 (현행으로 표시하지 않는다).
  * 같은 시행일에 일련번호가 다른 버전이 둘 이상이면 하나로 확정하지 않고 ambiguous.
  */
-export function pickVersionAsOf(versions: LawVersionRef[], asOf: string): VersionPick {
+export function pickVersionAsOf(versions: LawVersionRef[], asOf: IsoDate): VersionPick {
   const inForce = versions.filter((v) => v.effectiveDate <= asOf);
   const pending = versions.filter((v) => v.effectiveDate > asOf).sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate));
   if (inForce.length === 0) return { status: 'none' };

@@ -2,7 +2,28 @@
 
 조사일: 2026-10-14. 출처는 각 GitHub 저장소 README(요약 도구 경유)와 검색 결과이며, **코드 자체를 읽거나 실행해 검증하지는 않았다.** star 수·기능은 변할 수 있으므로 채택 전 직접 확인한다.
 
-## 후보
+## 지정 후보 검토 (2026-10-14 추가)
+README 요약 기준이며 코드 실행 검증은 하지 않았다.
+
+| 항목 | [dikehomme/kr-law-mcp](https://github.com/dikehomme/kr-law-mcp) | [ChangooLee/mcp-kr-legislation](https://github.com/ChangooLee/mcp-kr-legislation) |
+|---|---|---|
+| 규모·활동 | 커밋 2개, star 1, 릴리스 없음 | 커밋 48개, star 9, fork 4, 릴리스 없음 |
+| 언어·라이선스 | Python / MIT | Python 3.10+ (FastMCP) / MIT |
+| 도구 | 9개: `search_law`, `get_law_detail`(전체/특정 조문), `get_law_history`, 판례·해석례·행정규칙 검색/상세 | 130+개 (README 수치가 132/134로 불일치). `search_effective_law`, `search_law_articles` 등 |
+| 시행일(eflaw) | **언급 없음** | `search_effective_law` 있으나 `efYd` 같은 기준일 파라미터 문서 없음 |
+| 조문 선택 파라미터 | "특정 조문 조회"만 언급, 형식 미기재 | 문서 없음 |
+| 인증값 | `LAW_API_OC` (없으면 서버 시작 안 됨) | `LEGISLATION_API_KEY` (OC 매핑이 문서에 명시되지 않음) |
+| 전송 | 로컬 프로세스(추정) | stdio 기본, HTTP 선택. 제3자 호스팅 언급 없음 |
+| 오류 처리 | HTTP 200 오류 본문 처리 설명 없음 | 상세 설계 설명 없음 |
+| 기타 | **`get_law_detail`/`get_law_history`에는 법령ID가 아니라 법령일련번호를 써야 한다**고 명시 (우리 식별자 분리 설계와 일치). 단일 키워드 검색 권장 | 파이썬 클라이언트를 직접 import 가능. 저장소 파일 목록에 `.env`가 보임 → 실제 키 포함 여부 확인 전 복제 주의 |
+
+**판단**
+- dikehomme/kr-law-mcp: 소규모·초기 단계이고 시행일·기준일 조회가 없어 **정본 경로로 부적합**. 식별자 구분(ID≠일련번호) 주의 사항만 참고.
+- ChangooLee/mcp-kr-legislation: 범위는 넓지만 기준일 조회·조문 선택 문서가 부족하고 도구 수가 많아 우리 요구(시행일 확정, 조문 단위, 출처 메타데이터)에 맞추려면 래핑이 더 필요. **비교·탐색용**으로 적합.
+- 설명·기준일 처리 측면에서는 앞서 조사한 `chrisryugj/korean-law-mcp`(`efYd`, 시행예정 표시)가 가장 근접하나 제3자 호스팅 엔드포인트 주의.
+- **결론 유지**: 정본은 직접 어댑터(`LawGoKrAdapter`). 외부 MCP는 `LawSourceAdapter` 구현체로 추가할 수 있게 경계만 확보했고, 실연동 후 응답 대조용으로 쓴다.
+
+## 후보 (초기 조사)
 | 후보 | 언어 / 라이선스 | 특징 | 비고 |
 |---|---|---|---|
 | [chrisryugj/korean-law-mcp](https://github.com/chrisryugj/korean-law-mcp) | TypeScript / MIT | star 약 2.7k, 커밋 470, 최신 v4.15.8. `search_law`, `get_law_text`(기준일 `efYd` 지원), `get_annexes`, 인용 검증 등. `LAW_OC` 환경변수. 검색 1시간·조문 24시간 캐시. 로컬 stdio/HTTP(127.0.0.1) | **제3자 호스팅 엔드포인트(`mcp.gomdori.app/law`)가 있음 — 질의와 키가 그 서버를 거침**. 라이브러리로 import 가능한지는 미확인 |

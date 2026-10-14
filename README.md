@@ -6,12 +6,23 @@
 > 실제 법령 API · MCP · AI 공급자 · 결제 · 로그인은 연결되어 있지 않습니다. 법령 답변은 `verification: 'demo'`로 표시됩니다.
 > 개발 지시서: [`docs/prompts/ARCHILAW_CLAUDE_MASTER_PROMPT_v1_1.md`](docs/prompts/ARCHILAW_CLAUDE_MASTER_PROMPT_v1_1.md)
 
-## Phase 2 진행 상황 (법령 원문 조회) — 설계 단계
-실제 법제처 API는 **아직 연결·검증되지 않았습니다.** 현재까지는 설계와 접속 준비만 있습니다.
-- [`docs/phase2/01-design.md`](docs/phase2/01-design.md) — `/v1/legal/*` 계약, 식별자 모델, 오류 규약, 구현 순서
-- [`docs/phase2/02-mcp-review.md`](docs/phase2/02-mcp-review.md) — 오픈소스 법령 MCP 검토와 채택 방침
-- [`docs/phase2/03-setup-guide.md`](docs/phase2/03-setup-guide.md) — 도메인 허용, OC 신청, 환경변수(`LAW_OC`) 등록
-- `node scripts/probe-law-api.mjs` — 연결·OC 확인 및 원본 응답 보관 (연결 후 실행)
+## Phase 2 진행 상황 (법령 원문 조회) — 사전 구현, 실연동 미검증
+**법제처 API는 아직 연결·검증되지 않았습니다.** 인증값(OC)과 네트워크 허용이 없어 실제 응답을 한 번도 확인하지 못했고,
+따라서 Phase 2는 완료가 아닙니다. 지금 있는 것은 구조·타입·오류 처리·테스트(합성 데이터)입니다.
+
+| 영역 | 위치 | 상태 |
+|---|---|---|
+| `/v1/legal/*` API (`search`, `articles`, `versions`, `health`) | `server/src/http/` | 구현, 합성 데이터로 테스트 |
+| 법령 서비스 (기준일 버전 선택, 캐시, 검증 상태) | `server/src/legal/service.ts` | 구현 |
+| 법제처 어댑터·파서 | `server/src/legal/lawgokr/` | 구현했으나 **필드 매핑은 가정** (`LIVE_CONTRACT_VERIFIED=false`) |
+| MCP 어댑터 경계 (서비스→MCP 도구 정의) | `server/src/mcp/` | 도구 정의만 (MCP 서버 껍데기는 후속) |
+| 식별자 타입 (`LawId`/`LawMst`/`IsoDate`/`ArticleNo`/`BranchNo`) | `src/types/ids.ts` | 구현 |
+| 테스트 데이터 | `tests/fixtures/law/synthetic/` | **합성 데이터** — 실제 응답 아님 |
+
+- 인증값이 없으면 `/v1/legal/*`은 `LAW_OC_INVALID`(503)를 반환하며 가짜 데이터로 대체하지 않습니다.
+- 어댑터 계약이 `live-verified`가 아니면 모든 결과는 `needs-check`로 표시됩니다.
+- 문서: [설계](docs/phase2/01-design.md) · [MCP 검토](docs/phase2/02-mcp-review.md) · [접속 설정](docs/phase2/03-setup-guide.md)
+- `npm run server` — 서비스 실행(127.0.0.1), `node scripts/probe-law-api.mjs` — 연결 후 실제 응답 보관
 
 ## 실행
 ```bash
@@ -24,7 +35,7 @@ npm run build        # 타입체크 + 빌드
 | 명령 | 내용 |
 |---|---|
 | `npm run test` | 단위 → UI 순서로 모두 실행. 하나라도 실패하면 종료 코드 1 |
-| `npm run test:unit` | Vitest. 질문 분류, 예산 차단, 초기 로딩·저장소 오류 처리 (`tests/unit/`) |
+| `npm run test:unit` | Vitest. 질문 분류, 예산 차단, 초기 로딩, 식별자 타입 (`tests/unit/`) + 법령 서비스·API·MCP 경계 (`tests/server/`, Node 환경) |
 | `npm run test:ui` | Playwright(Chromium). 기능 / 반응형 / 원본 대비 시각 비교 (`tests/ui/`) |
 | `npm run typecheck` | `tsc --noEmit` (src, tests 포함) |
 

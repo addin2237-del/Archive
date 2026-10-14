@@ -1,39 +1,40 @@
 import { describe, expect, it } from 'vitest';
 import { isIsoDate, pickVersionAsOf, todaySeoul } from '../../src/domain/legalVersion';
+import { asIsoDate as d, asLawId, asLawMst } from '../../src/types/ids';
 import { LEGAL_ERROR_RETRYABLE } from '../../src/types/legal';
 import type { LawVersionRef } from '../../src/types/legal';
 
-const v = (mst: string, effectiveDate: string): LawVersionRef => ({ lawId: 'L1', mst, lawName: '테스트법', sourceType: '법률', effectiveDate, promulgationDate: null, promulgationNo: null });
+const v = (mst: string, effectiveDate: string): LawVersionRef => ({ lawId: asLawId('L1'), mst: asLawMst(mst), lawName: '테스트법', sourceType: '법률', effectiveDate: d(effectiveDate), promulgationDate: null, promulgationNo: null });
 const versions = [v('1', '2020-01-01'), v('2', '2022-06-30'), v('3', '2025-03-01')];
 
 describe('기준일에 적용되는 버전 선택', () => {
   it('시행일이 기준일 이하인 것 중 가장 늦은 버전', () => {
-    const r = pickVersionAsOf(versions, '2023-01-01');
+    const r = pickVersionAsOf(versions, d('2023-01-01'));
     expect(r.status).toBe('ok');
     if (r.status === 'ok') expect(r.version.mst).toBe('2');
   });
   it('기준일이 시행일 당일이면 그 버전 (경계 포함)', () => {
-    const r = pickVersionAsOf(versions, '2022-06-30');
+    const r = pickVersionAsOf(versions, d('2022-06-30'));
     expect(r.status === 'ok' && r.version.mst).toBe('2');
   });
   it('기준일 이후 시행 예정 버전은 pending으로 분리되고 현행이 아니다', () => {
-    const r = pickVersionAsOf(versions, '2024-01-01');
+    const r = pickVersionAsOf(versions, d('2024-01-01'));
     expect(r.status === 'ok' && r.version.mst).toBe('2');
     expect(r.status === 'ok' && r.pending.map((p) => p.mst)).toEqual(['3']);
   });
   it('시행 중인 버전이 없으면 none (임의로 가장 가까운 버전을 고르지 않는다)', () => {
-    expect(pickVersionAsOf(versions, '2019-12-31').status).toBe('none');
-    expect(pickVersionAsOf([], '2024-01-01').status).toBe('none');
+    expect(pickVersionAsOf(versions, d('2019-12-31')).status).toBe('none');
+    expect(pickVersionAsOf([], d('2024-01-01')).status).toBe('none');
   });
   it('같은 시행일에 일련번호가 다르면 ambiguous', () => {
-    const r = pickVersionAsOf([v('1', '2020-01-01'), v('2', '2022-06-30'), v('9', '2022-06-30')], '2023-01-01');
+    const r = pickVersionAsOf([v('1', '2020-01-01'), v('2', '2022-06-30'), v('9', '2022-06-30')], d('2023-01-01'));
     expect(r.status).toBe('ambiguous');
   });
   it('같은 일련번호가 중복되어도 하나로 확정', () => {
-    expect(pickVersionAsOf([v('2', '2022-06-30'), v('2', '2022-06-30')], '2023-01-01').status).toBe('ok');
+    expect(pickVersionAsOf([v('2', '2022-06-30'), v('2', '2022-06-30')], d('2023-01-01')).status).toBe('ok');
   });
   it('입력 순서와 무관', () => {
-    const r = pickVersionAsOf([...versions].reverse(), '2026-01-01');
+    const r = pickVersionAsOf([...versions].reverse(), d('2026-01-01'));
     expect(r.status === 'ok' && r.version.mst).toBe('3');
   });
 });

@@ -1,6 +1,9 @@
 # Phase 2 설계 — 공식 법령 검색 서비스 (원문 조회까지)
 
-> 상태: **설계 단계 (B)**. 법제처 API 실제 응답을 아직 확인하지 못했다. 이 문서의 *법제처 원본 필드명·파라미터는 가정이며*
+> 상태: **사전 구현 완료 (B안), 실연동 미검증**. 서버 골격·`/v1` 라우트·어댑터·파서·테스트(합성 데이터)는 구현됨. **법제처 실제 응답으로 확인된 것은 아직 없다.**
+> (구현 위치: `server/src/`, 계약 타입: `src/types/legal.ts` · `src/types/ids.ts`, 테스트: `tests/server/`)
+>
+> 이전 상태: **설계 단계 (B)**. 법제처 API 실제 응답을 아직 확인하지 못했다. 이 문서의 *법제처 원본 필드명·파라미터는 가정이며*
 > `scripts/probe-law-api.mjs`로 실제 응답을 기록한 뒤 확정한다. 우리가 정의하는 **정규화 모델(§3)과 `/v1` 계약(§2)** 은 법제처 응답과 무관하게 고정한다.
 > 범위: 법령 **원문 검색·조문·시행일 조회**까지. AI 해설, 토큰·비용 집계는 Phase 3.
 
@@ -50,6 +53,7 @@
 | `LAW_NOT_FOUND` | 해당 법령·조문 없음 | 아니오 |
 | `LAW_VERSION_AMBIGUOUS` | 기준일에 적용되는 버전을 하나로 확정하지 못함 → `needs-check` | 아니오 |
 | `INVALID_REQUEST` | 입력 검증 실패 | 아니오 |
+| `INTERNAL_ERROR` | 예상하지 못한 내부 오류 (메시지는 노출하지 않음) | 아니오 |
 
 ## 3. 정규화 모델 — 식별자를 섞지 않는다
 
@@ -106,3 +110,12 @@
 7. MCP 어댑터(서비스 노출) — 선택
 
 완료 기준: 건축법·시행령·시행규칙에서 지정 조문의 **원문·시행일·공식 URL**을 조회하고, 실패·모호한 경우 추정 없이 오류/`needs-check`를 반환하며, 오류 경로 테스트를 포함해 `npm run test`가 통과한다.
+
+## 8. 사전 구현에서 확정한 사항
+- **계약 검증 상태(`contractStatus`)**: 어댑터는 `unconfigured`(OC 없음) / `synthetic`(실제 응답 미확인) / `live-verified`로 자신의 상태를 밝힌다.
+  서비스는 `live-verified`가 아니면 **어떤 결과도 `verified`로 표시하지 않고** `needs-check`와 경고를 붙인다. `server/src/legal/lawgokr/status.ts`의 `LIVE_CONTRACT_VERIFIED`는 실제 응답 보관(`tests/fixtures/law/raw/`) 후 매핑 테스트를 통과시킨 뒤에만 `true`로 바꾼다.
+- **식별자 타입 분리**: `LawId`, `LawMst`, `IsoDate`, `ArticleNo`, `BranchNo`는 서로 대입할 수 없는 브랜드 타입이다. 본문 응답의 법령ID·시행일이 요청 버전과 다르면 거부한다.
+- **공식 URL**: 패턴을 확인하지 못해 만들지 않는다(`officialUrl: null`) → 현재는 조문 조회도 `needs-check`.
+- **신원**: 요청 콘텍스트는 서버가 부여한다(`local-owner/personal`). 본문·헤더의 userId/organizationId는 무시. 서버는 기본 `127.0.0.1`에만 바인딩한다.
+- **미확정(실연동 후 확인)**: 응답 필드명(`parse.ts`), `LID` 필터 파라미터, 인증 실패 본문 문구, 오류 시 HTTP 상태, 조문 가지번호 필드명, 공식 URL 패턴.
+- **Node `fetch`와 프록시**: 이 개발 환경처럼 프록시를 거치는 곳에서는 Node 기본 `fetch`가 프록시 설정을 따르지 않을 수 있다(`NODE_USE_ENV_PROXY=1` 필요). 실연동 시 확인.

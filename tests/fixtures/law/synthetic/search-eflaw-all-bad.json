@@ -1,0 +1,21 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "verifiedAgainstLiveApi": false,
+    "basis": "공식 문서를 직접 확인하지 못해 제3자 MCP 구현·일반 지식을 바탕으로 가정한 필드 구조. 실제 법제처 응답이 아님",
+    "description": "모든 항목이 필수 값 누락"
+  },
+  "body": {
+    "EflawSearch": {
+      "totalCnt": "2",
+      "law": [
+        {
+          "법령명한글": "x"
+        },
+        {
+          "법령ID": "SYN-L1"
+        }
+      ]
+    }
+  }
+}

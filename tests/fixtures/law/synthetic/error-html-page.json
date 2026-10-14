@@ -1,0 +1,9 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "verifiedAgainstLiveApi": false,
+    "basis": "공식 문서를 직접 확인하지 못해 제3자 MCP 구현·일반 지식을 바탕으로 가정한 필드 구조. 실제 법제처 응답이 아님",
+    "description": "HTTP 200으로 오는 HTML 오류 페이지"
+  },
+  "text": "<html><body>오류가 발생했습니다 [합성 데이터]</body></html>"
+}

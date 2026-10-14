@@ -29,3 +29,11 @@ node scripts/probe-law-api.mjs
 - OC 값은 출력·보관 파일에서 `***`로 마스킹된다.
 - 결과: `tests/fixtures/law/raw/*` (원본 응답) + `tests/fixtures/law/probe-report.json` (HTTP 상태, 형식, 오류 판정)
 - 이 결과로 `01-design.md §6.1`의 가정을 검증한 뒤 구현에 들어간다.
+
+## 5. 서버 실행
+```bash
+LAW_OC=<값> npm run server        # 기본 http://127.0.0.1:8787 (PORT, HOST로 변경)
+curl localhost:8787/v1/health      # ocConfigured / contractStatus 확인 (OC 값은 노출되지 않음)
+```
+- `LAW_OC`가 없으면 서버는 뜨지만 법령 조회는 `LAW_OC_INVALID`(503)를 반환한다.
+- `contractStatus`가 `synthetic`이면 응답이 실제 법제처 응답으로 검증되지 않았다는 뜻이며, 모든 결과가 `needs-check`로 표시된다.
