@@ -6,6 +6,13 @@
 > 실제 법령 API · MCP · AI 공급자 · 결제 · 로그인은 연결되어 있지 않습니다. 법령 답변은 `verification: 'demo'`로 표시됩니다.
 > 개발 지시서: [`docs/prompts/ARCHILAW_CLAUDE_MASTER_PROMPT_v1_1.md`](docs/prompts/ARCHILAW_CLAUDE_MASTER_PROMPT_v1_1.md)
 
+## Phase 2 진행 상황 (법령 원문 조회) — 설계 단계
+실제 법제처 API는 **아직 연결·검증되지 않았습니다.** 현재까지는 설계와 접속 준비만 있습니다.
+- [`docs/phase2/01-design.md`](docs/phase2/01-design.md) — `/v1/legal/*` 계약, 식별자 모델, 오류 규약, 구현 순서
+- [`docs/phase2/02-mcp-review.md`](docs/phase2/02-mcp-review.md) — 오픈소스 법령 MCP 검토와 채택 방침
+- [`docs/phase2/03-setup-guide.md`](docs/phase2/03-setup-guide.md) — 도메인 허용, OC 신청, 환경변수(`LAW_OC`) 등록
+- `node scripts/probe-law-api.mjs` — 연결·OC 확인 및 원본 응답 보관 (연결 후 실행)
+
 ## 실행
 ```bash
 npm install
