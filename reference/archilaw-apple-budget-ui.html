@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>아키로 | 건축법령 AI 검색 — 사용량 관리 UI</title>
+  <style>
+    :root {
+      --canvas: #F5F5F7; --surface: #FFFFFF; --surface-soft: #F9F9FB;
+      --line: #E7E8ED; --ink: #1D1D1F; --ink-2: #494B53; --muted: #868992;
+      --forest: #1D1D1F; --forest-deep: #111215; --mint: #DDE6FF;
+      --pill: #F0F1F5; --shadow: 0 12px 40px rgba(37, 70, 54, .045);
+      --warn-bg: #F7F7FA; --warn-ink: #696D77;
+    }
+    [data-theme="dark"] {
+      --canvas: #101115; --surface: #1D1F26; --surface-soft: #252832;
+      --line: #353844; --ink: #F5F6FA; --ink-2: #CBCDD7; --muted: #9397A6;
+      --forest: #313A4A; --forest-deep: #272F3D; --pill: #282D39;
+      --shadow: 0 12px 40px rgba(0, 0, 0, .12);
+      --warn-bg: #34343F; --warn-ink: #D7D9E2;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--canvas); color: var(--ink); font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif; font-size: 14px; -webkit-font-smoothing: antialiased; }
+    button, textarea, input { font: inherit; }
+    button { cursor: pointer; }
+    .icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; flex: none; }
+    .icon.sm { width: 16px; height: 16px; } .icon.lg { width: 24px; height: 24px; }
+    a { color: inherit; text-decoration: none; }
+    .sr-only { position: absolute; overflow: hidden; clip: rect(0,0,0,0); width: 1px; height: 1px; white-space: nowrap; }
+    .app { min-height: 100vh; }
+    .sidebar { width: 247px; position: fixed; top: 0; bottom: 0; left: 0; background: var(--surface); border-right: 1px solid var(--line); padding: 30px 19px 22px; display: flex; flex-direction: column; z-index: 30; }
+    .logo { display: flex; align-items: center; gap: 11px; padding: 0 10px; }
+    .logo-mark { height: 40px; width: 40px; border-radius: 13px; color: #FFFFFF; background: #1C1D22; display: grid; place-items: center; }
+    .logo-word { font-size: 20px; letter-spacing: -1.3px; font-weight: 850; color: var(--ink); }
+    .logo-caption { color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: 1px; margin-top: 1px; }
+    .nav-section-label { font-size: 10px; font-weight: 800; letter-spacing: 1.7px; color: var(--muted); padding: 0 13px; margin: 48px 0 12px; }
+    .nav { display: flex; flex-direction: column; gap: 5px; }
+    .nav-item { display: flex; align-items: center; gap: 13px; width: 100%; color: var(--ink-2); font-weight: 650; background: transparent; border: 0; padding: 13px 14px; border-radius: 12px; text-align: left; }
+    .nav-item.active { background: var(--pill); color: var(--forest); }
+    [data-theme="dark"] .nav-item.active { color: #D7E1FF; }
+    .nav-item:hover { background: var(--surface-soft); }
+    .nav-item.active:hover { background: var(--pill); }
+    .nav-item .nav-label { flex: 1; }
+    .nav-hint { background: var(--surface-soft); font-size: 10px; padding: 2px 7px; border-radius: 7px; color: var(--muted); }
+    .sidebar-spacer { flex: 1; }
+    .side-note { border-radius: 17px; background: #F1F2F6; padding: 19px 17px; margin: 0 4px 17px; position: relative; overflow: hidden; }
+    [data-theme="dark"] .side-note { background: #2B2F38; }
+    .side-note:after { content: ''; position: absolute; width: 96px; height: 96px; border: 1px solid #D8DDE7; border-radius: 50%; right: -39px; top: -42px; }
+    .side-note .mini-title { font-weight: 800; font-size: 13px; margin: 9px 0 5px; color: var(--ink); }
+    .side-note p { margin: 0; line-height: 1.65; color: var(--ink-2); font-size: 11px; }
+    .sidebar-foot { display: flex; align-items: center; gap: 10px; padding: 14px 9px 0; border-top: 1px solid var(--line); }
+    .avatar { height: 35px; width: 35px; border-radius: 11px; display: grid; place-items: center; background: #E4E8F5; color: #3E4E7F; font-size: 13px; font-weight: 900; }
+    .user-copy { flex: 1; min-width: 0; }
+    .user-copy strong { display: block; font-size: 12px; }
+    .user-copy span { font-size: 10px; color: var(--muted); display: block; margin-top: 2px; }
+    .icon-btn { height: 34px; width: 34px; display: grid; place-items: center; border-radius: 10px; background: transparent; border: 1px solid var(--line); color: var(--ink-2); }
+    .icon-btn:hover { background: var(--surface-soft); }
+    .workspace { margin-left: 247px; min-width: 0; }
+    .topbar { height: 82px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; padding: 0 43px; background: var(--canvas); }
+    .breadcrumbs { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: 12px; font-weight: 650; }
+    .breadcrumbs strong { color: var(--ink); }
+    .top-actions { display: flex; align-items: center; gap: 13px; }
+    .demo-pill { border-radius: 100px; background: var(--pill); color: var(--ink-2); font-size: 11px; font-weight: 700; padding: 8px 11px; display: inline-flex; gap: 7px; align-items: center; }
+    .demo-dot { width: 7px; height: 7px; background: #8BA5E8; border-radius: 50%; }
+    .top-actions .top-divider { height: 24px; width: 1px; background: var(--line); }
+    .content { max-width: 1500px; padding: 28px 43px 66px; margin: 0 auto; }
+    .hero { background: linear-gradient(117deg, #17191F 4%, #282C36 73%, #363D4C); min-height: 261px; border-radius: 25px; position: relative; overflow: hidden; color: #fff; padding: 36px 43px; }
+    .hero-text { position: relative; z-index: 2; }
+    .eyebrow { letter-spacing: 2px; font-size: 10px; font-weight: 800; }
+    .hero .eyebrow { color: #C8D9FF; margin-bottom: 16px; }
+    .hero h1 { margin: 0; font-size: clamp(27px, 3vw, 38px); line-height: 1.37; letter-spacing: -2.1px; font-weight: 790; }
+    .hero p { font-size: 12px; color: #D0D3DE; margin: 13px 0 0; line-height: 1.75; }
+    .hero-art { position: absolute; height: 240px; width: 400px; right: 18px; bottom: -5px; opacity: .8; }
+    .hero-art .fine { fill: none; stroke: #C1D3F8; stroke-width: 1.2; opacity: .44; }
+    .hero-art .glow { fill: #DDE7FF; opacity: .09; }
+    .hero-chip { position: absolute; right: 42px; top: 30px; border: 1px solid rgba(229,243,222,.25); border-radius: 100px; padding: 8px 11px; display: flex; align-items: center; gap: 7px; font-size: 10px; font-weight: 700; color: #EFF3FF; z-index: 2; background: rgba(255,255,255,.04); }
+    .search-panel { background: var(--surface); border-radius: 21px; box-shadow: 0 16px 34px rgba(24, 59, 46, .095); border: 1px solid var(--line); margin: -32px 22px 30px; position: relative; z-index: 5; padding: 20px 23px 16px; }
+    .search-label { display: flex; gap: 8px; align-items: center; color: var(--ink); font-size: 12px; font-weight: 820; margin: 0 0 8px; }
+    .search-label .sparkle { color: #5E79D8; }
+    .query-row { display: flex; gap: 14px; align-items: flex-end; }
+    textarea { resize: vertical; border: 0; color: var(--ink); outline: none; width: 100%; min-height: 66px; padding: 11px 0; line-height: 1.65; font-size: 16px; font-weight: 550; background: transparent; }
+    textarea::placeholder { color: #9DA0AA; }
+    .ask-btn { display: inline-flex; align-items: center; gap: 10px; background: var(--forest); color: #fff; border: none; border-radius: 13px; padding: 14px 16px; font-weight: 800; white-space: nowrap; margin-bottom: 6px; box-shadow: 0 3px 8px rgba(15,47,37,.14); }
+    .ask-btn:hover { filter: brightness(1.17); }
+    .search-footer { border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; padding-top: 13px; gap: 10px; flex-wrap: wrap; }
+    .prompt-chips { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+    .prompt-name { font-size: 10px; color: var(--muted); margin-right: 3px; font-weight: 800; }
+    .chip { background: var(--surface-soft); color: var(--ink-2); border: 1px solid var(--line); border-radius: 100px; padding: 8px 11px; font-size: 11px; font-weight: 700; }
+    .chip:hover { background: var(--pill); border-color: #C6CFEB; }
+    .input-help { font-size: 10px; color: var(--muted); white-space: nowrap; }
+    .main-grid { display: grid; grid-template-columns: minmax(0, 1.62fr) minmax(295px, .86fr); gap: 22px; align-items: start; }
+    .main-section, .side-section { min-width: 0; }
+    .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+    .section-heading h2 { display: flex; gap: 9px; align-items: center; font-size: 16px; letter-spacing: -.45px; margin: 0; font-weight: 800; }
+    .section-heading .subtle { color: var(--muted); font-size: 11px; }
+    .section-actions { display: flex; gap: 6px; }
+    .surface-card { background: var(--surface); border-radius: 19px; border: 1px solid var(--line); box-shadow: var(--shadow); }
+    .answer-card { overflow: hidden; }
+    .answer-top { padding: 23px 26px 19px; }
+    .answer-status { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+    .state { color: #4D6BA9; background: #EDF2FF; display: inline-flex; gap: 6px; padding: 7px 10px; border-radius: 100px; font-size: 10px; font-weight: 800; align-items: center; }
+    [data-theme="dark"] .state { background: #303B56; color: #D2E0FF; }
+    .state .demo-dot { width: 6px; height: 6px; }
+    .answer-tools { display: flex; gap: 7px; }
+    .answer-top h2 { font-size: clamp(21px, 2vw, 26px); letter-spacing: -1px; font-weight: 840; line-height: 1.45; margin: 20px 0 13px; word-break: keep-all; }
+    .lead { margin: 0; color: var(--ink-2); font-size: 13px; line-height: 1.85; word-break: keep-all; }
+    .lead strong { color: var(--ink); }
+    .notice { background: var(--warn-bg); border-radius: 10px; padding: 10px 13px; display: flex; gap: 8px; align-items: start; margin-top: 20px; color: var(--warn-ink); font-size: 10px; line-height: 1.65; font-weight: 650; }
+    .tabs { display: flex; align-items: stretch; gap: 26px; border-bottom: 1px solid var(--line); padding: 0 26px; }
+    .tab { border: none; background: transparent; color: var(--muted); font-size: 12px; font-weight: 720; padding: 16px 0 14px; border-bottom: 2px solid transparent; white-space: nowrap; }
+    .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: #5575D9; }
+    .tab-panel { padding: 21px 26px 25px; min-height: 208px; }
+    .tab-panel[hidden] { display: none; }
+    .body-title { font-size: 12px; font-weight: 850; margin-bottom: 11px; }
+    .illustration { background: var(--surface-soft); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: flex; align-items: center; gap: 24px; }
+    .ratio-graphic { flex: none; width: 112px; height: 112px; border-radius: 11px; background: #E8EBF4; position: relative; display: grid; place-items: center; border: 1px solid #D8DEEB; overflow: hidden; }
+    .ratio-graphic:before { content:''; position: absolute; inset: 9px; border: 1px dashed #A8B4D0; }
+    .ratio-graphic .building { width: 59px; height: 59px; background: #304B92; position: relative; border-radius: 2px; display: grid; place-items: center; color:#F3F6FF; font-size:11px; font-weight:800; z-index:1; }
+    .ratio-graphic .building:before { content:''; position: absolute; width:20px; height:20px; top:0; right:0; border-top:2px solid #9DB9E8; border-right:2px solid #9DB9E8; opacity:.4; }
+    .illustration-body { flex:1; }
+    .ratio-label { font-size: 10px; font-weight: 780; color: var(--muted); }
+    .ratio-number { color: var(--ink); font-size: 26px; letter-spacing: -1px; font-weight: 860; margin: 6px 0 4px; }
+    .ratio-number span { font-size: 13px; font-weight: 750; }
+    .ratio-copy { font-size: 11px; color: var(--muted); line-height: 1.7; }
+    .ratio-strip { background: #DFE3EE; height: 7px; border-radius: 10px; margin-top: 13px; overflow: hidden; }
+    .ratio-strip span { display:block; width:40%; height:100%; background: #5977CF; border-radius: 10px; }
+    .itemized { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+    .itemized li { font-size: 12px; color: var(--ink-2); display: flex; align-items: baseline; gap: 9px; line-height: 1.65; }
+    .itemized li:before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: #5F7BE0; flex: none; transform: translateY(-2px); }
+    .source-item { border: 1px solid var(--line); background: var(--surface-soft); border-radius: 12px; padding: 15px; display:flex; gap: 13px; align-items:center; margin-bottom:10px; }
+    .source-item .source-icon { height: 36px; width: 36px; display: grid; place-items: center; border-radius: 10px; background: var(--pill); color: var(--ink-2); }
+    .source-item strong { font-size: 12px; display:block; margin-bottom: 4px; }
+    .source-item small { color: var(--muted); font-size: 10px; line-height:1.5; }
+    .source-note { font-size: 11px; line-height: 1.7; color: var(--muted); }
+    .case-title { font-size:12px; font-weight:800; margin:0 0 12px; }
+    .case-step { display:flex; gap:12px; margin-bottom:14px; font-size:12px; line-height:1.7; color:var(--ink-2); }
+    .step-count { height:24px; width:24px; border-radius:8px; flex:none; background:var(--pill); color:var(--ink); display:grid; place-items:center; font-weight:800; font-size:11px; }
+    .secondary-card { padding: 22px 22px 20px; margin-bottom: 19px; }
+    .card-topline { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:18px; }
+    .card-title { display:flex; align-items:center; gap:8px; font-size: 14px; letter-spacing: -.25px; font-weight:850; }
+    .card-hint { font-size:10px; color:var(--muted); }
+    .mini-inputs { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .field label { display:block; font-size:11px; font-weight:740; color:var(--muted); margin-bottom:8px; }
+    .field-box { border:1px solid var(--line); border-radius:10px; height:42px; background:var(--surface-soft); display:flex; align-items:center; padding:0 10px; }
+    .field-box input { border:0; background:transparent; min-width:0; color:var(--ink); font-size:15px; font-weight:850; outline:none; width:100%; }
+    .field-box span { color:var(--muted); font-size:11px; flex:none; }
+    .calc-result { margin-top:16px; background:#EFF2FA; color:#252C3A; border-radius:13px; padding:17px 17px 15px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    [data-theme="dark"] .calc-result { background:#2B3445; color:#E3EBFF; }
+    .calc-result .result-kicker { color:#6D768C; font-size:10px; font-weight:800; }
+    [data-theme="dark"] .calc-result .result-kicker { color:#C8D1E9; }
+    .calc-result .result-number { font-size:25px; letter-spacing:-.8px; font-weight:900; margin-top:5px; }
+    .calc-result .result-number span { font-size:13px; }
+    .calculator-note { margin-top: 12px; font-size: 10px; line-height:1.6; color:var(--muted); }
+    .history-card { padding:21px 22px 17px; }
+    .history-list { padding:0; margin:0; list-style:none; }
+    .history-list li + li { border-top:1px solid var(--line); }
+    .history-button { display:flex; gap:10px; align-items:center; border:0; background:none; color:var(--ink-2); font-size:11px; font-weight:700; padding:13px 0; width:100%; text-align:left; }
+    .history-button span { flex:1; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+    .history-button:hover { color:#536FD0; }
+    .history-empty {font-size:11px;color:var(--muted);line-height:1.7;padding:8px 0 16px;}
+    .glossary { margin-top: 31px; }
+    .glossary .section-heading {margin-bottom:14px;}
+    .glossary-grid { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:13px; }
+    .glossary-card { text-align:left; border:1px solid var(--line); background:var(--surface); border-radius:15px; padding:16px 18px; min-height:111px; }
+    .glossary-card:hover { border-color:#A7B9EF; transform:translateY(-1px); }
+    .glossary-card strong { display:flex; align-items:center; justify-content:space-between; font-size:13px; font-weight:800; margin-bottom:8px; }
+    .glossary-card p { margin:0; font-size:11px; color:var(--muted); line-height:1.65; }
+    .mobile-header { display:none; }
+    .toast { position:fixed; bottom:27px; left:50%; transform:translate(-50%,10px); opacity:0; pointer-events:none; background:#1C1D22; color:white; padding:11px 16px; border-radius:10px; font-size:12px; font-weight:700; box-shadow:0 12px 32px rgba(0,0,0,.14); z-index:100; transition:opacity .2s,transform .2s; max-width:calc(100vw - 40px); text-align:center; }
+    .toast.show { opacity:1; transform:translate(-50%,0); }
+    .saved-panel { display:none; padding:26px; }
+    .saved-panel .saved-item { margin-top:14px; border:1px solid var(--line); border-radius:12px; padding:14px; display:flex; gap:10px; align-items:center; justify-content:space-between; }
+    .saved-item button { background:var(--pill); border:0; padding:8px 12px; border-radius:9px; color:var(--ink); font-size:11px; font-weight:800; }
+    .footer { font-size:10px; color:var(--muted); padding-top:26px; line-height:1.7; }
+    @media (max-width:1240px) { .sidebar { width:213px; padding-left:13px; padding-right:13px; } .workspace { margin-left:213px; } .content { padding:24px 25px 60px; } .topbar { padding:0 25px; } .main-grid { grid-template-columns:minmax(0,1.4fr) minmax(274px,.9fr); gap:16px; } .glossary-grid { gap:9px; } .hero-art { right:-35px; } }
+    @media (max-width:1000px) { .sidebar { width:74px; padding:19px 10px; align-items:center; } .logo { padding:0; } .logo-word-wrap,.nav-section-label,.nav-label,.nav-hint,.side-note,.user-copy,.sidebar-foot .icon-btn {display:none;} .nav {width:100%; margin-top:39px;} .nav-item {justify-content:center; padding:13px; } .sidebar-foot { padding:15px 0 0; } .workspace {margin-left:74px;} .main-grid { grid-template-columns:minmax(0,1.5fr) minmax(260px,1fr); } .hero-art { right:-110px; } }
+    @media (max-width:760px) { .sidebar { display:none; } .workspace {margin-left:0;} .topbar { height:65px; padding:0 17px; } .breadcrumbs {display:none;} .mobile-header {display:flex; align-items:center; gap:9px;} .mobile-header .logo-mark { height:34px; width:34px; border-radius:10px;} .mobile-header strong {font-size:17px; letter-spacing:-.7px;} .top-actions { gap:9px; } .top-actions .top-divider {display:none;} .demo-pill {font-size:9px; padding:7px 9px;} .content {padding:14px 14px 35px;} .hero {border-radius:18px; padding:25px 23px 53px; min-height:255px;} .hero h1 {font-size:29px; letter-spacing:-1.5px;} .hero p {font-size:11px; max-width:300px;} .hero-art {height:190px; width:270px; right:-115px; bottom:-10px; opacity:.35;} .hero-chip {display:none;} .search-panel {margin:-34px 9px 25px; border-radius:17px; padding:17px 16px 13px;} .query-row {display:block;} textarea {font-size:14px; min-height:72px;} .ask-btn {width:100%; justify-content:center; margin-bottom:0; padding:13px 14px;} .search-footer {margin-top:13px; justify-content:flex-start;} .input-help {display:none;} .prompt-name { flex-basis:100%; } .main-grid {grid-template-columns:1fr; gap:22px;} .answer-top {padding:21px 19px 17px;} .answer-top h2 {font-size:22px;} .tabs {padding:0 19px;gap:20px;} .tab-panel {padding:19px;} .secondary-card,.history-card {padding:20px;} .glossary-grid {grid-template-columns:1fr;gap:9px;} .glossary-card {min-height:auto; padding:15px 16px;} .glossary-card strong {margin-bottom:4px;} .section-heading h2 {font-size:15px;} .footer {text-align:center;} }
+    @media (max-width:400px) { .hero h1 {font-size:26px;} .illustration {gap:12px;padding:12px;} .ratio-graphic {width:91px;height:95px;} .ratio-graphic .building {width:47px;height:47px;} .ratio-number {font-size:23px;} .input-help{display:none;} .tab {font-size:11px;} .tabs {gap:17px;} }
+    @media (prefers-reduced-motion: reduce) { html {scroll-behavior:auto;} .toast {transition:none;} .glossary-card:hover {transform:none;} }
+
+/* ===========================================================
+   ARCHI LAW / MONO — Apple-inspired graphite & silver system
+   Visual-only overrides. Structural markup and demo logic unchanged.
+   =========================================================== */
+:root {
+  --canvas: #F5F5F7; --surface: #FFFFFF; --surface-soft: #FAFAFC;
+  --line: #E8E9EF; --ink: #1D1D1F; --ink-2: #4B4D57; --muted: #838692;
+  --forest: #1D1D1F; --forest-deep: #111215; --mint: #DDE6FF;
+  --pill: #F0F1F5; --shadow: 0 8px 34px rgba(19, 26, 43, .035), 0 2px 8px rgba(19, 26, 43, .018);
+  --warn-bg: #F5F6F9; --warn-ink: #747783;
+  color-scheme: light;
+}
+[data-theme="dark"] {
+  --canvas: #111216; --surface: #1D2027; --surface-soft: #252832;
+  --line: #383A45; --ink: #F5F6FA; --ink-2: #C5C9D3; --muted: #989DAA;
+  --forest: #DDE2EF; --forest-deep: #F5F6FA; --pill: #2B2E39;
+  --shadow: 0 12px 42px rgba(0,0,0,.14);
+  --warn-bg: #292C36; --warn-ink: #C0C5D0;
+  color-scheme: dark;
+}
+body { letter-spacing: -.10px; }
+.sidebar { background: rgba(255,255,255,.93); }
+.topbar { background: rgba(245,245,247,.8); }
+@supports (backdrop-filter: blur(18px)) {
+  .sidebar, .topbar { backdrop-filter: saturate(150%) blur(18px); -webkit-backdrop-filter: saturate(150%) blur(18px); }
+}
+[data-theme="dark"] .sidebar { background: rgba(29,32,39,.94); }
+[data-theme="dark"] .topbar { background: rgba(17,18,22,.84); }
+.logo-mark { background: linear-gradient(135deg,#30323A,#17181D); color:#FFFFFF; box-shadow: 0 3px 10px rgba(15,17,24,.1); }
+.logo-caption { letter-spacing: 1.5px; }
+.nav-item.active { background: #EFF0F4; color: #1E2430; }
+.nav-item.active .icon { color: #5C79DB; }
+[data-theme="dark"] .nav-item.active { background: #313542; color: #E9EDF6; }
+.side-note { background: linear-gradient(145deg,#F0F2F8 0%,#E9ECF5 100%); }
+[data-theme="dark"] .side-note { background: linear-gradient(145deg,#292E3B,#303648); }
+.side-note:after { border-color:rgba(113,135,190,.14); }
+.avatar { background:#E9EDF8; color:#405889; }
+[data-theme="dark"] .avatar { background:#333E55; color:#DDE6FF; }
+.demo-pill { background: #EEEFF3; color:#646874; }
+[data-theme="dark"] .demo-pill { background:#2B2F39; color:#C9CBD4; }
+.demo-dot { background:#92A9E8; }
+.hero { background: linear-gradient(115deg,#17191F 3%,#262B36 65%,#363E4F 100%); box-shadow: 0 18px 34px rgba(24,28,41,.06); isolation:isolate; }
+.hero::before { content:''; position:absolute; z-index:0; width:480px; height:330px; right:-95px; top:-160px; border-radius:50%; background:radial-gradient(ellipse,rgba(146,171,236,.21) 0%,rgba(146,171,236,.08) 35%,transparent 73%); pointer-events:none; }
+.hero .eyebrow { color:#BDC9E7; }
+.hero p { color:#CAD0DC; }
+.hero-chip { border-color:rgba(232,238,255,.28); color:#E8EEFF; background:rgba(255,255,255,.04); }
+.hero-art .fine { stroke:#BDCFF4; opacity:.35; }
+.hero-art .glow { fill:#DEE8FF; opacity:.07; }
+.search-panel { border-color:#E9EAF0; box-shadow: 0 18px 42px rgba(25,31,49,.075), 0 3px 9px rgba(25,31,49,.025); }
+[data-theme="dark"] .search-panel { border-color:var(--line); }
+.search-label .sparkle { color:#647DD0; }
+textarea::placeholder { color:#A3A5AF; }
+.ask-btn { background:#1C1D22; box-shadow:0 5px 16px rgba(27,30,42,.12); transition:background .18s,transform .18s,box-shadow .18s; }
+.ask-btn:hover { background:#323741; filter:none; transform:translateY(-1px); box-shadow:0 8px 19px rgba(27,30,42,.15); }
+[data-theme="dark"] .ask-btn { background:#ECEEF5; color:#1B1D23; box-shadow:none; }
+[data-theme="dark"] .ask-btn:hover { background:#D9E3FA; }
+.chip:hover { border-color:#AFC1E8; background:#F2F5FB; }
+[data-theme="dark"] .chip:hover { background:#373E50; }
+.state { background:#EFF2FA; color:#5672AC; }
+[data-theme="dark"] .state { background:#303A52; color:#CEDBF8; }
+.notice { border:1px solid rgba(128,135,154,.10); }
+.tab[aria-selected="true"] { border-bottom-color:#5E7DDE; }
+.ratio-graphic { background:#E7ECF7; border-color:#D9E0EE; }
+.ratio-graphic:before { border-color:#ABBAD8; }
+.ratio-graphic .building { background:#38569E; color:#F7F9FF; }
+.ratio-strip { background:#E1E6F1; }
+.ratio-strip span { background:#6E8ADF; }
+.itemized li:before { background:#6E87D2; }
+.calc-result { background:linear-gradient(135deg,#EFF2F9,#E7ECF7); color:#263043; }
+.calc-result .result-kicker { color:#6A7591; }
+[data-theme="dark"] .calc-result { background:linear-gradient(135deg,#303748,#353E54); color:#E6EDFF; }
+[data-theme="dark"] .calc-result .result-kicker { color:#B9C6E2; }
+.history-button:hover { color:#5F79D3; }
+.glossary-card { transition: border-color .18s,transform .18s,box-shadow .18s; }
+.glossary-card:hover { border-color:#BDC9E8; box-shadow: 0 7px 24px rgba(35,45,65,.055); }
+.icon-btn:focus-visible,.nav-item:focus-visible,.chip:focus-visible,.ask-btn:focus-visible,.tab:focus-visible,.glossary-card:focus-visible,.history-button:focus-visible,
+input:focus-visible,textarea:focus-visible { outline:2px solid #6789E8; outline-offset:3px; }
+.toast { background:#272A32; }
+[data-theme="dark"] .toast { background:#E7EBF4; color:#17191F; }
+@media (max-width:760px) {
+  .sidebar { backdrop-filter:none; }
+  .hero::before { width:340px; height:290px; right:-160px; top:-70px; }
+}
+
+  
+/* ARCHI LAW — COST & PROVIDER CONTROL (visual prototype) */
+.ai-select-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:13px 0 0; margin-top:13px; border-top:1px solid var(--line); flex-wrap:wrap; }
+.ai-provider-copy { display:flex; align-items:center; gap:8px; color:var(--ink-2); font-size:11px; font-weight:750; }
+.ai-provider-control { display:flex; align-items:center; gap:9px; min-width:0; }
+.ai-provider-control select { appearance:none; -webkit-appearance:none; color:var(--ink); background:var(--surface-soft); border:1px solid var(--line); border-radius:10px; padding:10px 30px 10px 12px; min-width:208px; max-width:100%; font-size:12px; font-weight:740; outline-color:#7891da; cursor:pointer; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237B8294' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:calc(100% - 11px) center; }
+.ai-provider-note { color:var(--muted);font-size:10px; }
+.model-status { display:inline-flex; padding:8px 10px; background:var(--pill); border-radius:99px; color:var(--ink-2); font-size:10px; font-weight:760; white-space:nowrap; }
+.usage-card { margin-top:16px; padding:22px 21px 18px; }
+.usage-head {display:flex;justify-content:space-between;align-items:center;gap:8px;}
+.usage-tag {border-radius:30px; background:var(--pill);color:var(--muted);font-size:10px;padding:6px 9px;font-weight:750;}
+.usage-total {font-size:29px;font-weight:850;letter-spacing:-1.5px;margin:18px 0 2px;}
+.usage-total small {font-size:12px; color:var(--muted);letter-spacing:0;font-weight:650;}
+.usage-limit {font-size:11px;color:var(--muted);}
+.usage-progress {margin:15px 0 13px;background:var(--pill);height:8px;border-radius:99px;overflow:hidden;}
+.usage-progress span {display:block;background:#7E96D3;height:100%;width:0%;border-radius:99px;transition:width .25s ease;}
+.usage-progress span.warn {background:#D8A25B;} .usage-progress span.over {background:#D77575;}
+.usage-markers {display:flex;justify-content:space-between;font-size:10px;color:var(--muted);font-weight:650;}
+.usage-meta {display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+.usage-meta span {display:block;color:var(--muted);font-size:10px;margin-bottom:4px;}.usage-meta strong {font-size:13px;letter-spacing:-.15px;}
+.usage-budget-row {display:flex;align-items:center;gap:7px;justify-content:space-between;margin-top:12px;font-size:11px;}
+.usage-budget-row label {color:var(--ink-2);font-weight:750;}
+.usage-budget-row input {border:1px solid var(--line);border-radius:9px;background:var(--surface-soft);color:var(--ink);padding:9px 10px;width:101px;text-align:right;font-size:12px;font-weight:700;}
+.usage-feedback {font-size:11px;line-height:1.55;margin:12px 0 0;color:#6179AE;min-height:17px;}
+.usage-feedback.warning {color:#BD7C27;}.usage-feedback.danger {color:#C56161;}
+.demo-usage-btn {width:100%; margin-top:12px; background:var(--pill); color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:11px;font-weight:800;font-size:11px;}
+.demo-usage-btn:hover {filter:brightness(.98);}.demo-usage-btn:disabled {opacity:.45;cursor:not-allowed;}
+.usage-footnote {color:var(--muted);font-size:10px;line-height:1.65;margin:10px 0 0;}
+.usage-alert {display:none;align-items:flex-start;gap:8px;background:var(--warn-bg);padding:12px;border-radius:11px;font-size:11px;line-height:1.55;margin-top:13px;color:var(--ink-2);}
+.usage-alert.visible {display:flex;} .usage-alert strong {color:var(--ink);}
+@media(max-width:760px) { .ai-select-row {align-items:flex-start;}.ai-provider-control {width:100%;justify-content:space-between;} .ai-provider-control select {flex:1;} .usage-card {padding:20px;} .model-status {display:none;} }
+
+</style>
+</head>
+<body>
+  <svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" aria-hidden="true" style="position:absolute;overflow:hidden">
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21v-7h6v7"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5V5a2 2 0 0 1 2-2h14v17H6a2 2 0 0 1 0-4h14"/><path d="M8 7h8M8 11h5"/></symbol>
+    <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M6 4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17l-6-4-6 4z"/></symbol>
+    <symbol id="i-calc" viewBox="0 0 24 24"><rect x="5" y="2.5" width="14" height="19" rx="2"/><path d="M8 6h8v4H8zM8 14h1m3 0h1m3 0h0M8 18h1m3 0h1m3 0h0"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 2 2.5 7.5L22 12l-7.5 2.5L12 22l-2.5-7.5L2 12l7.5-2.5z"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 16a8 8 0 0 1-12-12 8.5 8.5 0 1 0 12 12z"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 11v6m0-10h.01"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M5 2h10l4 4v16H5zM15 2v5h4M8 12h8M8 16h7"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2" fill="currentColor" stroke="none"/><circle cx="16" cy="17" r="2" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M20 14v6H4V4h6"/></symbol>
+  </svg>
+  <div class="app">
+    <aside class="sidebar" aria-label="사이드 메뉴">
+      <div class="logo"><span class="logo-mark"><svg class="icon lg"><use href="#i-home"/></svg></span><div class="logo-word-wrap"><div class="logo-word">아키로<span style="color:#597CE0">.</span></div><div class="logo-caption">ARCHI LAW NOTES</div></div></div>
+      <div class="nav-section-label">WORKSPACE</div>
+      <nav class="nav">
+        <button class="nav-item active" data-nav="home" aria-label="홈"><svg class="icon"><use href="#i-home"/></svg><span class="nav-label">홈</span></button>
+        <button class="nav-item" data-nav="search" aria-label="법령 검색"><svg class="icon"><use href="#i-search"/></svg><span class="nav-label">법령 검색</span><span class="nav-hint">AI</span></button>
+        <button class="nav-item" data-nav="saved" aria-label="저장한 답변"><svg class="icon"><use href="#i-bookmark"/></svg><span class="nav-label">저장한 답변</span></button>
+        <button class="nav-item" data-nav="calc" aria-label="빠른 계산기"><svg class="icon"><use href="#i-calc"/></svg><span class="nav-label">빠른 계산기</span></button>
+      </nav>
+      <div class="nav-section-label" style="margin-top:32px">REFERENCE</div>
+      <nav class="nav"><button class="nav-item" data-nav="guide" aria-label="사용 안내"><svg class="icon"><use href="#i-book"/></svg><span class="nav-label">이용 안내</span></button></nav>
+      <div class="sidebar-spacer"></div>
+      <div class="side-note"><svg class="icon lg" style="color:#6B83DA"><use href="#i-spark"/></svg><div class="mini-title">나만의 건축법 비서</div><p>어려운 건축법도 평소 말투로 질문해 보세요.</p></div>
+      <div class="sidebar-foot"><div class="avatar">나</div><div class="user-copy"><strong>개인 작업공간</strong><span>Private workspace</span></div><button class="icon-btn theme-toggle" aria-label="다크 모드 전환" title="밝기 전환"><svg class="icon sm"><use href="#i-moon"/></svg></button></div>
+    </aside>
+    <main class="workspace">
+      <header class="topbar"><div class="mobile-header"><span class="logo-mark"><svg class="icon"><use href="#i-home"/></svg></span><strong>아키로.</strong></div><div class="breadcrumbs"><span>내 작업공간</span><span>›</span><strong id="breadcrumb">법령 AI 검색</strong></div><div class="top-actions"><span class="model-status" id="modelTopStatus">무료 모델 · 미연결</span><span class="demo-pill"><span class="demo-dot"></span> UI 시연 모드</span><span class="top-divider"></span><button class="icon-btn theme-toggle" aria-label="다크 모드 전환" title="밝기 전환"><svg class="icon sm"><use href="#i-moon"/></svg></button></div></header>
+      <div class="content">
+        <section class="hero" id="hero"><span class="hero-chip"><svg class="icon sm"><use href="#i-spark"/></svg> 법률은 정확하게, 설명은 쉽게</span><div class="hero-text"><div class="eyebrow">YOUR PERSONAL ARCHITECTURE LAW ASSISTANT</div><h1>복잡한 건축법,<br>질문 하나로 쉽게.</h1><p>법령을 찾는 시간은 줄이고, 이해하는 시간은 늘리세요.<br>나만의 건축 실무 AI 검색 노트.</p></div>
+          <svg class="hero-art" viewBox="0 0 400 240" aria-hidden="true"><circle cx="223" cy="113" r="102" class="glow"/><circle cx="223" cy="113" r="100" class="fine"/><circle cx="223" cy="113" r="75" class="fine"/><path d="M65 178 L197 71 L323 178 V223 H65Z" class="fine"/><path d="M130 173 L197 122 L263 173 V223 H130Z" class="fine"/><path d="M150 223v-55h95v55M175 223v-46h44v46M197 71V38M65 178h258M102 178v45M292 178v45" class="fine"/><path d="M64 190h260M65 205h259" class="fine"/><path d="M15 223h365M15 234h365M337 78v145M347 78v145M332 84h21M332 196h21" class="fine"/></svg>
+        </section>
+        <section class="search-panel" id="searchArea" aria-label="건축법령 질문하기"><div class="search-label"><svg class="icon sm sparkle"><use href="#i-spark"/></svg> 무엇이 궁금하신가요?</div><div class="query-row"><label class="sr-only" for="questionInput">법령에 관해 질문하기</label><textarea id="questionInput" rows="2" placeholder="예) 대지 100평에 건폐율 40%면 건물을 몇 평까지 지을 수 있어?"></textarea><button class="ask-btn" id="askBtn">질문하기 <svg class="icon sm"><use href="#i-arrow"/></svg></button></div><div class="ai-select-row"><div class="ai-provider-copy"><svg class="icon sm" style="color:#7890cb"><use href="#i-spark"/></svg> AI 답변 모델 <span class="ai-provider-note">현재 선택만 가능 · 실제 API 미연결</span></div><div class="ai-provider-control"><select id="modelSelect" aria-label="AI 모델 선택"><option value="gemini-free">Gemini 무료 API</option><option value="groq-free">Groq 무료 API</option><option value="openrouter-free">OpenRouter 무료 모델</option><option value="ollama-local">Ollama 로컬 AI</option><option value="paid-demo">유료 AI · 샘플 요금</option></select></div></div><div class="search-footer"><div class="prompt-chips"><span class="prompt-name">추천 질문</span><button class="chip" data-query="건폐율이 뭐야? 계산 예시도 알려줘">건폐율</button><button class="chip" data-query="용적률이란 무엇이고 어떻게 계산해?">용적률</button><button class="chip" data-query="다락은 언제 연면적에 포함될까?">다락 기준</button><button class="chip" data-query="포치와 데크가 건축면적에 포함돼?">포치 · 데크</button></div><span class="input-help">Enter 질문 · Shift + Enter 줄바꿈</span></div></section>
+        <div id="mainContent">
+          <div class="main-grid">
+            <section class="main-section" id="answerSection"><div class="section-heading"><h2><svg class="icon" style="color:#607DDD"><use href="#i-spark"/></svg> AI 법령 해설</h2><span class="subtle">답변 예시 미리보기</span></div>
+              <div class="surface-card answer-card"><div class="answer-top"><div class="answer-status"><span class="state"><span class="demo-dot"></span> 예시 답변</span><div class="answer-tools"><button class="icon-btn" id="bookmarkBtn" title="저장하기" aria-label="답변 저장하기" aria-pressed="false"><svg class="icon sm"><use href="#i-bookmark"/></svg></button><button class="icon-btn" id="copyBtn" title="답변 복사" aria-label="답변 복사"><svg class="icon sm"><use href="#i-copy"/></svg></button></div></div><h2 id="answerTitle">건폐율은 대지에서 건물이 차지하는 비율이에요.</h2><p class="lead" id="answerLead">건폐율은 <strong>건축면적 ÷ 대지면적 × 100</strong>으로 계산하는 비율입니다. 같은 땅이라도 용도지역과 조례에 따라 허용되는 기준이 달라질 수 있어요.</p><div class="notice"><svg class="icon sm"><use href="#i-info"/></svg><span>이 화면은 디자인 검토용입니다. 아래 답변·법령 카드는 시연 데이터이며 공식 API 조회나 AI 검증을 거치지 않았습니다.</span></div></div>
+                <div class="tabs" role="tablist" aria-label="답변 보기"><button class="tab" role="tab" aria-selected="true" aria-controls="panel-summary" id="tab-summary" data-tab="summary">쉬운 해설</button><button class="tab" role="tab" aria-selected="false" aria-controls="panel-source" id="tab-source" data-tab="source">관련 법령</button><button class="tab" role="tab" aria-selected="false" aria-controls="panel-case" id="tab-case" data-tab="case">검토 포인트</button></div>
+                <div class="tab-panel" role="tabpanel" id="panel-summary" aria-labelledby="tab-summary"><div class="body-title" id="summaryHeading">숫자로 이해하기</div><div class="illustration"><div class="ratio-graphic"><div class="building">40평</div></div><div class="illustration-body"><div class="ratio-label">100평 대지 · 건폐율 40% 가정</div><div class="ratio-number">40<span> 평</span></div><div class="ratio-copy">전체 대지 100평 중 건축면적을 40평으로 가정한 단순 계산</div><div class="ratio-strip"><span></span></div></div></div><ul class="itemized" id="summaryList"><li>건폐율은 건축면적을 기준으로 계산합니다.</li><li>2층을 올리더라도 건폐율과 용적률은 별도로 검토해야 합니다.</li></ul></div>
+                <div class="tab-panel" role="tabpanel" id="panel-source" aria-labelledby="tab-source" hidden><div class="body-title">관련 법령 연결 예정</div><div class="source-item"><div class="source-icon"><svg class="icon"><use href="#i-file"/></svg></div><div><strong id="sourceMain">건축법 제55조 (건축물의 건폐율)</strong><small>공식 법제처 원문 연결 전 · 실제 조회 결과 아님</small></div></div><div class="source-item"><div class="source-icon"><svg class="icon"><use href="#i-book"/></svg></div><div><strong>용도지역별 조례 및 개별 규제</strong><small>지자체·대지 정보 확인 후 결과 제공 예정</small></div></div><p class="source-note">실제 구현 시 시행일, 조문 번호, 출처, 공식 원문 링크, 지역별 조례 적용 여부를 함께 표시합니다.</p><a href="https://www.law.go.kr" target="_blank" rel="noopener noreferrer" style="display:inline-flex;gap:6px;align-items:center;font-size:11px;font-weight:800;color:#607DDD;margin-top:9px">국가법령정보센터 홈페이지 <svg class="icon sm"><use href="#i-external"/></svg></a></div>
+                <div class="tab-panel" role="tabpanel" id="panel-case" aria-labelledby="tab-case" hidden><div class="case-title">답변 전 확인할 항목</div><div id="caseSteps"><div class="case-step"><span class="step-count">01</span><span>대지의 용도지역·지구 및 지구단위계획 확인</span></div><div class="case-step"><span class="step-count">02</span><span>해당 지자체 건축조례와 특례 적용 여부 확인</span></div><div class="case-step"><span class="step-count">03</span><span>건축면적 산정 방식과 실제 인허가 조건 별도 검토</span></div></div></div>
+              </div>
+            </section>
+            <aside class="side-section"><div class="section-heading"><h2>실무 도구</h2><span class="subtle">자주 사용하는 기능</span></div><section class="surface-card secondary-card" id="calculator"><div class="card-topline"><div class="card-title"><svg class="icon" style="color:#687CB4"><use href="#i-calc"/></svg> 건폐율 빠른 계산</div><span class="card-hint">단순 산술</span></div><div class="mini-inputs"><div class="field"><label for="siteArea">대지면적</label><div class="field-box"><input id="siteArea" type="number" inputmode="decimal" value="100" min="0" step="any"/><span>평</span></div></div><div class="field"><label for="sitePercent">적용 건폐율</label><div class="field-box"><input id="sitePercent" type="number" inputmode="decimal" value="40" min="0" max="100" step="any"/><span>%</span></div></div></div><div class="calc-result"><div><div class="result-kicker">계산상 건축면적</div><div class="result-number" id="calcResult">40.0 <span>평</span></div></div><svg class="icon lg" style="color:#879CDD"><use href="#i-arrow"/></svg></div><div class="calculator-note">입력한 비율로만 계산합니다. 해당 토지의 허용 건폐율을 자동 판단하지 않습니다.</div></section>
+              <section class="surface-card usage-card" id="usageMonitor" aria-label="AI 사용량 및 예산 관리"><div class="usage-head"><div class="card-title"><svg class="icon" style="color:#687CB4"><use href="#i-calc"/></svg> AI 사용량 · 비용</div><span class="usage-tag">시연용 데이터</span></div><div class="usage-total" id="usageTotal">₩0 <small>/ 이번 달</small></div><div class="usage-limit" id="usageBudgetLabel">설정한 월 예산 10,000원 중 0% 사용</div><div class="usage-progress"><span id="usageFill"></span></div><div class="usage-markers"><span>0%</span><span>50% 주의</span><span>80% 경고</span><span>100% 중단</span></div><div class="usage-meta"><div><span>이번 질문 입력 / 출력</span><strong id="usageTokens">0 / 0 토큰</strong></div><div><span>이번 질문 추정 비용</span><strong id="usageLastCost">₩0</strong></div><div><span>이번 달 누적 토큰</span><strong id="usageAllTokens">0 토큰</strong></div><div><span>선택한 모델</span><strong id="usageModel">Gemini 무료</strong></div></div><div class="usage-budget-row"><label for="budgetAmount">월 지출 상한</label><div style="display:flex;align-items:center;gap:5px;"><input id="budgetAmount" type="number" min="100" max="1000000" step="100" value="10000" inputmode="numeric"/><span>원</span></div></div><div class="usage-alert" id="usageAlert" role="status" aria-live="polite"><svg class="icon sm" style="color:#C58D48"><use href="#i-info"/></svg><span id="usageAlertText"></span></div><div class="usage-feedback" id="usageFeedback">무료 사용 시 모델 추론 비용 0원 · 한도 별도</div><button type="button" class="demo-usage-btn" id="usageTest">샘플 질문 1회 사용량 반영</button><p class="usage-footnote">샘플 버튼은 실제 AI 요청이나 결제를 하지 않습니다. 실제 버전에서는 API 응답의 토큰 사용량으로 계산하며, 유료 한도 초과 요청을 서버에서 차단합니다. 무료 모델 한도 소진 시 유료 전환은 사전 확인이 필요합니다.</p></section>
+              <section class="surface-card history-card"><div class="card-topline" style="margin-bottom:5px"><div class="card-title"><svg class="icon" style="color:#687CB4"><use href="#i-clock"/></svg> 최근 질문</div><span class="card-hint">이 기기에 저장</span></div><ul class="history-list" id="historyList"></ul></section></aside>
+          </div>
+          <section class="glossary" id="glossary"><div class="section-heading"><h2>자주 찾는 건축 용어</h2><span class="subtle">카드를 눌러 예시 답변 보기</span></div><div class="glossary-grid"><button class="glossary-card" data-query="건폐율이 뭐야? 계산 예시도 알려줘"><strong>건폐율 <svg class="icon sm"><use href="#i-arrow"/></svg></strong><p>대지면적 중 건축면적이 차지하는 비율</p></button><button class="glossary-card" data-query="용적률이란 무엇이고 어떻게 계산해?"><strong>용적률 <svg class="icon sm"><use href="#i-arrow"/></svg></strong><p>대지면적에 대한 용적률 산정용 연면적의 비율</p></button><button class="glossary-card" data-query="다락은 언제 연면적에 포함될까?"><strong>다락 기준 <svg class="icon sm"><use href="#i-arrow"/></svg></strong><p>층고와 구조, 산정 기준을 함께 검토</p></button></div></section>
+        </div>
+        <section class="surface-card saved-panel" id="savedPanel"><div class="section-heading"><h2>저장한 답변</h2><span class="subtle">이 브라우저에만 저장됩니다</span></div><div id="savedList"></div></section>
+        <div class="footer">ARCHI LAW NOTES · 개인용 UI 프로토타입 · 실제 법률 자문 및 법령 조회 기능은 연결되지 않았습니다.</div>
+      </div>
+    </main>
+  </div>
+  <div class="toast" role="status" aria-live="polite" id="toast"></div>
+  <script>
+  (() => {
+    'use strict';
+    const $ = (id) => document.getElementById(id);
+    const safeLoad = (key, fallback) => { try { const x = JSON.parse(localStorage.getItem(key)); return x == null ? fallback : x; } catch { return fallback; } };
+    let history = safeLoad('archilaw_demo_history', []);
+    let saved = safeLoad('archilaw_demo_saved', []);
+    let activeQuestion = '건폐율이 뭐야? 계산 예시도 알려줘';
+    let toastTimeout;
+    const topics = {
+      coverage: { matches: ['건폐율','건축면적'], title: '건폐율은 대지에서 건물이 차지하는 비율이에요.', lead: '건폐율은 <strong>건축면적 ÷ 대지면적 × 100</strong>으로 계산하는 비율입니다. 같은 땅이라도 용도지역과 조례에 따라 허용되는 기준이 달라질 수 있어요.', graphic: '40평', label:'100평 대지 · 건폐율 40% 가정', value:'40', copy:'전체 대지 100평 중 건축면적을 40평으로 가정한 단순 계산', points:['건폐율은 건축면적을 기준으로 계산합니다.', '2층을 올리더라도 건폐율과 용적률은 별도로 검토해야 합니다.'], source:'건축법 제55조 (건축물의 건폐율)', steps:['대지의 용도지역·지구 및 지구단위계획 확인','해당 지자체 건축조례와 특례 적용 여부 확인','건축면적 산정 방식과 실제 인허가 조건 별도 검토'] },
+      far: { matches:['용적률','연면적'], title:'용적률은 대지에 비해 얼마나 넓게 지을 수 있는지를 보는 비율이에요.', lead:'용적률은 <strong>용적률 산정에 사용하는 연면적 ÷ 대지면적 × 100</strong>으로 계산합니다. 연면적 전체가 항상 그대로 산입되는 것은 아니므로 제외 규정도 확인해야 합니다.', graphic:'100평', label:'100평 대지 · 용적률 100% 가정', value:'100', copy:'용적률 산정 대상 연면적의 단순 계산 예시', points:['건폐율과 용적률은 서로 다른 개념입니다.','연면적 산정에서 제외되는 부분이 있는지 확인해야 합니다.'], source:'건축법 제56조 (건축물의 용적률)', steps:['적용 용도지역 및 용적률 확인','연면적 산정 제외 대상 확인','지자체 조례 및 지구단위계획 확인'] },
+      attic: { matches:['다락','층고'], title:'다락은 높이와 구조 등에 따라 면적 산정을 검토해야 해요.', lead:'다락의 바닥면적 산정은 <strong>단순히 이름을 다락이라고 붙이는 것으로 결정되지 않습니다.</strong> 실제 층고와 지붕 형태, 관련 기준을 확인해야 합니다.', graphic:'조건', label:'다락 면적 검토', value:'확인', copy:'치수 및 단면 정보가 있어야 정확한 기준 검토 가능', points:['평균 높이 등 적용 기준을 원문으로 확인해야 합니다.','관할 허가권자의 적용 기준도 확인하는 편이 안전합니다.'], source:'건축법 시행령 제119조 (면적 등의 산정방법)', steps:['지붕 형태와 단면 치수 확인','최신 시행령의 바닥면적 산정 기준 확인','관련 지자체 운영 기준 확인'] },
+      porch: { matches:['포치','데크','처마','발코니'], title:'포치와 데크는 형태에 따라 면적 포함 여부가 달라질 수 있어요.', lead:'건축면적 포함 여부는 <strong>지붕, 기둥, 돌출 정도, 구조적 형태</strong> 등에 따라 검토합니다. 현장 사진과 도면을 함께 확인하면 더 정확합니다.', graphic:'도면', label:'구조 형태별 검토', value:'확인', copy:'지붕·기둥·돌출 구조에 따라 판단이 달라질 수 있음', points:['용어보다 실제 건축물의 형태가 중요합니다.','바닥면적과 건축면적 산정 기준을 구분해야 합니다.'], source:'건축법 시행령 제119조 (면적 등의 산정방법)', steps:['포치·데크의 지붕과 기둥 유무 확인','건축면적 및 바닥면적 산정 기준 구분','허가권자 기준 확인'] },
+      setback: { matches:['이격','경계선','인접','도로'], title:'이격거리는 대지 경계와 다양한 기준을 함께 봐야 해요.', lead:'대지 경계선과 건축물 간 거리에는 <strong>지역별 건축조례, 용도지역 및 건축물 용도</strong> 등이 관계할 수 있습니다. 주소와 대지 조건이 필요합니다.', graphic:'주소', label:'현장별 조건 검토', value:'확인', copy:'지역·대지 조건 없이 거리 확정 불가', points:['법령 일반 기준과 지자체 조례를 함께 조회해야 합니다.','건축선, 접도 및 인접대지 조건도 검토합니다.'], source:'건축법 제58조 (대지 안의 공지)', steps:['대지 소재지와 용도지역 확인','해당 지자체 건축조례 확인','배치도 및 대지 경계 조건 확인'] },
+      other: {matches:[], title:'질문을 받았습니다. 관련 법령 검색은 연결 예정입니다.', lead:'현재는 <strong>UI 디자인을 확인하는 시연 모드</strong>입니다. 정식 구현에서는 질문을 분석한 뒤 공식 법령 API에서 원문을 조회하고 출처와 함께 답합니다.', graphic:'AI', label:'맞춤형 법령 조회', value:'준비', copy:'실제 검색 및 해설 기능 개발 전 화면', points:['정식 버전에서 최신 시행 법령을 조회합니다.','지역 조례와 적용 조건을 함께 제시할 예정입니다.'], source:'관련 법령 자동 검색 예정', steps:['질문 내용에서 검색 키워드 추출','법령·시행령·시행규칙·조례 검색','원문 근거와 적용 조건 표시'] }
+    };
+    function topicFor(question) { for (const key of ['coverage','far','attic','porch','setback']) if (topics[key].matches.some(s => question.includes(s))) return topics[key]; return topics.other; }
+    function showToast(message) { const el=$('toast'); el.textContent=message; el.classList.add('show'); clearTimeout(toastTimeout); toastTimeout=setTimeout(()=>el.classList.remove('show'),2300); }
+    function escapeHTML(input) { return String(input).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
+    function renderAnswer(question) {
+      const d=topicFor(question); activeQuestion=question;
+      $('answerTitle').textContent=d.title;
+      $('answerLead').innerHTML=d.lead;
+      $('summaryHeading').textContent=d===topics.other?'검색 결과 미리보기':'숫자와 사례로 이해하기';
+      document.querySelector('.building').textContent=d.graphic;
+      document.querySelector('.ratio-label').textContent=d.label;
+      document.querySelector('.ratio-number').innerHTML=escapeHTML(d.value)+(d===topics.coverage || d===topics.far?'<span> 평</span>':'');
+      document.querySelector('.ratio-copy').textContent=d.copy;
+      document.querySelector('.ratio-strip span').style.width=(d===topics.coverage?'40%':d===topics.far?'100%':'32%');
+      $('summaryList').innerHTML=d.points.map(p=>`<li>${escapeHTML(p)}</li>`).join('');
+      $('sourceMain').textContent=d.source;
+      $('caseSteps').innerHTML=d.steps.map((s,i)=>`<div class="case-step"><span class="step-count">${String(i+1).padStart(2,'0')}</span><span>${escapeHTML(s)}</span></div>`).join('');
+      $('bookmarkBtn').setAttribute('aria-pressed',String(saved.includes(question)));
+      $('bookmarkBtn').style.background=saved.includes(question)?'var(--pill)':'transparent';
+      document.querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab==='summary')));
+      document.querySelectorAll('.tab-panel').forEach(p=>p.hidden=p.id!=='panel-summary');
+    }
+    function renderHistory() {
+      if (!history.length) history=['건폐율이 뭐야? 계산 예시도 알려줘','다락은 언제 연면적에 포함될까?'];
+      $('historyList').innerHTML=history.slice(0,5).map((q)=>`<li><button class="history-button" data-history="${escapeHTML(q)}"><svg class="icon sm" style="color:var(--muted)"><use href="#i-clock"/></svg><span>${escapeHTML(q)}</span><svg class="icon sm" style="color:var(--muted)"><use href="#i-arrow"/></svg></button></li>`).join('');
+      document.querySelectorAll('[data-history]').forEach(b=>b.addEventListener('click',()=>submitQuestion(b.dataset.history)));
+    }
+    function renderSaved() {
+      const dest=$('savedList');
+      if(!saved.length) { dest.innerHTML='<p class="history-empty">저장된 답변이 없습니다. 답변 카드 오른쪽 상단의 북마크를 눌러 추가해 보세요.</p>'; return; }
+      dest.innerHTML=saved.map((q,i)=>`<div class="saved-item"><span style="font-size:12px;font-weight:700;line-height:1.6">${escapeHTML(q)}</span><button data-saved-index="${i}">열어보기</button></div>`).join('');
+      dest.querySelectorAll('[data-saved-index]').forEach(b=>b.addEventListener('click',()=>{ showHome(); submitQuestion(saved[Number(b.dataset.savedIndex)]); }));
+    }
+    function submitQuestion(question) { const q=String(question??$('questionInput').value).trim(); if (!q) { $('questionInput').focus(); showToast('질문을 먼저 입력해 주세요.'); return; } $('questionInput').value=q; history=[q,...history.filter(v=>v!==q)].slice(0,8); localStorage.setItem('archilaw_demo_history',JSON.stringify(history)); renderHistory(); renderAnswer(q); showHome(); $('answerSection').scrollIntoView({behavior:'smooth',block:'start'}); showToast('예시 답변입니다 · 실제 법령 API 연결 전'); }
+    function showHome() { $('mainContent').style.display='block'; $('savedPanel').style.display='none'; }
+    $('askBtn').addEventListener('click',()=>submitQuestion());
+    $('questionInput').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();submitQuestion();} });
+    document.querySelectorAll('[data-query]').forEach(b=>b.addEventListener('click',()=>submitQuestion(b.dataset.query)));
+    document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-tab]').forEach(x=>x.setAttribute('aria-selected',String(x===b)));document.querySelectorAll('.tab-panel').forEach(p=>p.hidden=p.id!==`panel-${b.dataset.tab}`); }));
+    $('bookmarkBtn').addEventListener('click',()=>{if(saved.includes(activeQuestion)){saved=saved.filter(q=>q!==activeQuestion);showToast('저장 목록에서 제거했어요.');}else{saved=[activeQuestion,...saved];showToast('내 질문함에 저장했어요.');}localStorage.setItem('archilaw_demo_saved',JSON.stringify(saved));renderAnswer(activeQuestion);renderSaved();});
+    $('copyBtn').addEventListener('click',async()=>{const d=topicFor(activeQuestion);const text=`질문: ${activeQuestion}\n\n${d.title}\n${d.lead.replace(/<[^>]*>/g,'')}\n\n※ UI 시연용 데이터이며 법령 조회 결과가 아닙니다.`;try{await navigator.clipboard.writeText(text);showToast('시연 답변을 복사했어요.');}catch{const box=document.createElement('textarea');box.value=text;document.body.appendChild(box);box.select();try{document.execCommand('copy');showToast('시연 답변을 복사했어요.');}catch{showToast('복사가 제한된 브라우저입니다.');}box.remove();}});
+    function calculate(){const area=parseFloat($('siteArea').value),rate=parseFloat($('sitePercent').value);const ok=Number.isFinite(area)&&Number.isFinite(rate)&&area>=0&&rate>=0&&rate<=100;$('calcResult').innerHTML=ok?`${(area*rate/100).toLocaleString('ko-KR',{minimumFractionDigits:1,maximumFractionDigits:2})} <span>평</span>`:'<span>값을 확인해 주세요</span>';}
+    $('siteArea').addEventListener('input',calculate);$('sitePercent').addEventListener('input',calculate);
+    document.querySelectorAll('.theme-toggle').forEach(btn=>btn.addEventListener('click',()=>{const next=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=next;localStorage.setItem('archilaw_theme',next);document.querySelectorAll('.theme-toggle use').forEach(u=>u.setAttribute('href',next==='dark'?'#i-sun':'#i-moon'));}));
+    const theme=localStorage.getItem('archilaw_theme')==='dark'?'dark':'light';document.documentElement.dataset.theme=theme;if(theme==='dark')document.querySelectorAll('.theme-toggle use').forEach(u=>u.setAttribute('href','#i-sun'));
+    document.querySelectorAll('[data-nav]').forEach(btn=>btn.addEventListener('click',()=>{
+      const nav=btn.dataset.nav;document.querySelectorAll('[data-nav]').forEach(x=>x.classList.toggle('active',x===btn));
+      $('breadcrumb').textContent=({home:'법령 AI 검색',search:'법령 검색',saved:'저장한 답변',calc:'빠른 계산기',guide:'이용 안내'})[nav];
+      if(nav==='saved'){ $('mainContent').style.display='none';$('savedPanel').style.display='block';renderSaved();$('savedPanel').scrollIntoView({behavior:'smooth'});return; }
+      showHome();
+      if(nav==='search'){ $('searchArea').scrollIntoView({behavior:'smooth'}); $('questionInput').focus(); }
+      else if(nav==='calc') $('calculator').scrollIntoView({behavior:'smooth',block:'center'});
+      else if(nav==='guide') { $('glossary').scrollIntoView({behavior:'smooth',block:'center'});showToast('현재는 시연용 UI입니다. 공식 법령 검색 기능은 개발 예정입니다.'); }
+      else window.scrollTo({top:0,behavior:'smooth'});
+    }));
+    // UI 데모 전용 사용량; API 결제 정보가 아니라 명시적인 샘플 데이터입니다.
+    const monthKey = new Date().toISOString().slice(0,7);
+    const budgetKey = 'archilaw_demo_budget_v2';
+    const usageKey = 'archilaw_demo_usage_v2';
+    const modelKey = 'archilaw_demo_ai_model_v2';
+    const modelLabels = { 'gemini-free':'Gemini 무료','groq-free':'Groq 무료','openrouter-free':'OpenRouter 무료','ollama-local':'Ollama 로컬','paid-demo':'유료 AI 샘플' };
+    let demoBudget = Number(localStorage.getItem(budgetKey))||10000;
+    let demoUsage = safeLoad(usageKey,{month:monthKey,won:0,allTokens:0,input:0,output:0,lastCost:0});
+    if (demoUsage.month!==monthKey) demoUsage={month:monthKey,won:0,allTokens:0,input:0,output:0,lastCost:0};
+    let demoModel = localStorage.getItem(modelKey)||'gemini-free';
+    if (!modelLabels[demoModel]) demoModel='gemini-free';
+    $('modelSelect').value=demoModel;
+    $('budgetAmount').value=demoBudget;
+    const money = n => '₩'+Math.max(0,Math.round(n)).toLocaleString('ko-KR');
+    function updateBudgetUI(){
+      const pct=Math.round(100*demoUsage.won/demoBudget);
+      const paid=demoModel==='paid-demo';
+      $('usageTotal').innerHTML=money(demoUsage.won)+' <small>/ 이번 달 · 샘플</small>';
+      $('usageBudgetLabel').textContent=`설정한 월 예산 ${demoBudget.toLocaleString('ko-KR')}원 중 ${pct}% 사용`;
+      $('usageFill').style.width=Math.min(100,pct)+'%';
+      $('usageFill').className=pct>=100?'over':pct>=80?'warn':'';
+      $('usageTokens').textContent=`${demoUsage.input.toLocaleString('ko-KR')} / ${demoUsage.output.toLocaleString('ko-KR')} 토큰`;
+      $('usageLastCost').textContent=money(demoUsage.lastCost);
+      $('usageAllTokens').textContent=demoUsage.allTokens.toLocaleString('ko-KR')+' 토큰';
+      $('usageModel').textContent=modelLabels[demoModel];
+      $('modelTopStatus').textContent=paid?'유료 모델 · 미연결':'무료 모델 · 미연결';
+      const alert=$('usageAlert'), alertText=$('usageAlertText');
+      alert.classList.toggle('visible',pct>=50);
+      if(pct>=100) alertText.innerHTML='<strong>예산 100% 도달</strong> · 유료 AI 요청은 자동 중단됩니다.';
+      else if(pct>=80) alertText.innerHTML='<strong>월 예산 80% 이상</strong> · 추가 유료 요청 전에 확인하세요.';
+      else if(pct>=50) alertText.innerHTML='<strong>월 예산 50% 이상</strong> · 사용량을 확인하세요.';
+      $('usageFeedback').className='usage-feedback'+(pct>=100?' danger':pct>=80?' warning':'');
+      $('usageFeedback').textContent=paid?(pct>=100?'유료 샘플 요청 제한 중 · 예산을 변경할 수 있습니다.':'유료 AI 샘플 단가로 계산 (실제 API 가격 아님)'):'무료 사용 시 모델 추론 비용 0원 · 한도 별도';
+      $('usageTest').disabled=paid&&pct>=100;
+      $('usageTest').textContent=paid?'샘플 유료 질문 1회 반영':'샘플 무료 질문 1회 반영';
+    }
+    $('modelSelect').addEventListener('change',e=>{ demoModel=e.target.value;localStorage.setItem(modelKey,demoModel);updateBudgetUI(); });
+    $('budgetAmount').addEventListener('change',e=>{
+      const n=Number(e.target.value);
+      if(!Number.isFinite(n)||n<100||n>1000000) {e.target.value=demoBudget; showToast('월 예산은 100~1,000,000원으로 입력하세요.');return;}
+      demoBudget=Math.round(n);localStorage.setItem(budgetKey,String(demoBudget));updateBudgetUI();
+    });
+    $('usageTest').addEventListener('click',()=>{
+      const input=5120,output=960;
+      // 3달러/1M 입력 + 15달러/1M 출력, 1달러=1336원인 시연 전용 가상 단가.
+      const calc=demoModel==='paid-demo'?Math.round(((input*3+output*15)/1000000)*1336):0;
+      if(calc>0&&demoUsage.won+calc>demoBudget){showToast('샘플 유료 사용량이 월 예산을 초과하므로 차단했습니다.');return;}
+      demoUsage={...demoUsage,month:monthKey,input,output,lastCost:calc,allTokens:demoUsage.allTokens+input+output,won:demoUsage.won+calc};
+      localStorage.setItem(usageKey,JSON.stringify(demoUsage));updateBudgetUI();showToast(`시연 사용량 반영: 입력 ${input.toLocaleString()} · 출력 ${output.toLocaleString()} 토큰 / ${money(calc)}`);
+    });
+    updateBudgetUI();
+
+    renderHistory();renderSaved();renderAnswer(activeQuestion);calculate();
+  })();
+  </script>
+</body>
+</html>
