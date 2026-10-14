@@ -23,7 +23,7 @@ export function QuestionSearch({ value, onChange, onSubmit, onChip, modelSelecto
   };
   return (
     <section className="search-panel" id="searchArea" aria-label="건축법령 질문하기">
-      <div className="search-label"><Icon name="spark" size="sm" /> 무엇이 궁금하신가요?</div>
+      <div className="search-label"><Icon name="spark" size="sm" className="sparkle" /> 무엇이 궁금하신가요?</div>
       <div className="query-row">
         <label className="sr-only" htmlFor="questionInput">법령에 관해 질문하기</label>
         <textarea id="questionInput" ref={textareaRef} rows={2} placeholder="예) 대지 100평에 건폐율 40%면 건물을 몇 평까지 지을 수 있어?" value={value} onChange={(e) => onChange(e.target.value)} onKeyDown={onKey} />

@@ -1,7 +1,7 @@
 import type { AIModelOption } from '../types';
 
-// UI 예시 목록. 실제 모델 ID·한도·단가는 Phase 3에서 공급자 설정값으로 관리한다.
-export const MODELS: AIModelOption[] = [
+// UI 예시 목록(Mock 어댑터가 반환하는 값이자, 모델 목록 로딩 실패 시의 대체 목록). 실제 모델 ID·한도·단가는 Phase 3에서 공급자 설정값으로 관리한다.
+export const FALLBACK_MODELS: AIModelOption[] = [
   { id: 'gemini-free', provider: 'gemini', optionLabel: 'Gemini 무료 API', shortLabel: 'Gemini 무료', tier: 'free' },
   { id: 'groq-free', provider: 'groq', optionLabel: 'Groq 무료 API', shortLabel: 'Groq 무료', tier: 'free' },
   { id: 'openrouter-free', provider: 'openrouter', optionLabel: 'OpenRouter 무료 모델', shortLabel: 'OpenRouter 무료', tier: 'free' },

@@ -4,7 +4,7 @@ import { BudgetSettings } from './BudgetSettings';
 import type { AIModelOption, UsageSummary } from '../types';
 
 interface Props {
-  summary: UsageSummary;
+  summary: UsageSummary | null;
   model: AIModelOption;
   onBudgetChange: (n: number) => void;
   onBudgetInvalid: () => void;
@@ -15,6 +15,14 @@ const money = (n: number) => '₩' + Math.max(0, Math.round(n)).toLocaleString('
 const num = (n: number) => n.toLocaleString('ko-KR');
 
 export function UsageMonitor({ summary, model, onBudgetChange, onBudgetInvalid, onSampleUsage }: Props) {
+  if (!summary) {
+    return (
+      <section className="surface-card usage-card" id="usageMonitor" aria-label="AI 사용량 및 예산 관리">
+        <div className="usage-head"><div className="card-title"><Icon name="calc" style={{ color: '#687CB4' }} /> AI 사용량 · 비용</div><span className="usage-tag">시연용 데이터</span></div>
+        <div className="usage-alert visible" role="status"><Icon name="info" size="sm" style={{ color: '#C58D48' }} /><span><strong>사용량 정보를 불러오지 못했습니다.</strong> · 0원으로 표시하지 않습니다. 새로고침 후 다시 시도하세요.</span></div>
+      </section>
+    );
+  }
   const paid = model.tier === 'paid';
   const pct = Math.round((100 * summary.spentKRW) / summary.budgetKRW);
   const feedbackClass = pct >= 100 ? ' danger' : pct >= 80 ? ' warning' : '';

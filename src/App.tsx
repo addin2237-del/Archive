@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { clients } from './api';
-import { safeGetRaw, safeSave } from './api/storage';
-import { safeLoad } from './api/storage';
-import { DEFAULT_QUESTION, getDemoAnswer } from './data/demoTopics';
-import { DEFAULT_MODEL_ID, MODELS } from './data/models';
+import { safeGetRaw, safeLoad, safeSave } from './api/storage';
+import type { BootstrapData } from './bootstrap';
+import { DEFAULT_QUESTION } from './data/demoTopics';
+import { DEFAULT_MODEL_ID } from './data/models';
 import { useToast } from './hooks/useToast';
 import type { LegalAnswer, UsageSummary } from './types';
 import type { NavKey } from './types/ui';
@@ -28,27 +28,27 @@ const MODEL_KEY = 'archilaw_demo_ai_model_v2';
 const THEME_KEY = 'archilaw_theme';
 const DEFAULT_HISTORY = ['건폐율이 뭐야? 계산 예시도 알려줘', '다락은 언제 연면적에 포함될까?'];
 const BREADCRUMBS: Record<NavKey, string> = { home: '법령 AI 검색', search: '법령 검색', saved: '저장한 답변', calc: '빠른 계산기', guide: '이용 안내' };
-const EMPTY_SUMMARY: UsageSummary = { month: '', budgetKRW: 10000, spentKRW: 0, totalTokens: 0, lastInputTokens: 0, lastOutputTokens: 0, lastCostKRW: 0, isSample: true };
 
 const scrollTo = (id: string, block: ScrollLogicalPosition = 'start') => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block });
 
-export default function App() {
+export default function App({ initial }: { initial: BootstrapData }) {
+  const { models } = initial;
   const [dark, setDark] = useState(() => document.documentElement.dataset.theme === 'dark');
   const [nav, setNav] = useState<NavKey>('home');
   const [question, setQuestion] = useState('');
   const [activeQuestion, setActiveQuestion] = useState(DEFAULT_QUESTION);
-  const [answer, setAnswer] = useState<LegalAnswer>(() => getDemoAnswer(DEFAULT_QUESTION));
+  const [answer, setAnswer] = useState<LegalAnswer | null>(initial.answer);
   const [answerVersion, setAnswerVersion] = useState(0);
   const [history, setHistory] = useState<string[]>(() => { const h = safeLoad<string[]>(HISTORY_KEY, []); return h.length ? h : DEFAULT_HISTORY; });
   const [saved, setSaved] = useState<string[]>(() => safeLoad<string[]>(SAVED_KEY, []));
-  const [modelId, setModelId] = useState(() => { const m = safeGetRaw(MODEL_KEY); return MODELS.some((x) => x.id === m) ? (m as string) : DEFAULT_MODEL_ID; });
-  const [summary, setSummary] = useState<UsageSummary>(EMPTY_SUMMARY);
+  const [modelId, setModelId] = useState(() => { const m = safeGetRaw(MODEL_KEY); return models.some((x) => x.id === m) ? (m as string) : (models.find((x) => x.id === DEFAULT_MODEL_ID) ?? models[0]).id; });
+  const [summary, setSummary] = useState<UsageSummary | null>(initial.summary);
   const { toast, showToast } = useToast();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const model = MODELS.find((m) => m.id === modelId) ?? MODELS[0];
+  const model = models.find((m) => m.id === modelId) ?? models[0];
   const showHome = nav !== 'saved';
 
-  useEffect(() => { clients.usage.getSummary().then(setSummary); }, []);
+  useEffect(() => { if (initial.warnings.length) showToast(initial.warnings.join(' ')); }, [initial.warnings, showToast]);
   useEffect(() => { document.documentElement.dataset.theme = dark ? 'dark' : 'light'; }, [dark]);
 
   const toggleTheme = () => setDark((d) => { const next = !d; safeSave(THEME_KEY, next ? 'dark' : 'light'); return next; });
@@ -56,7 +56,8 @@ export default function App() {
   const submitQuestion = useCallback(async (raw?: string) => {
     const q = (raw ?? question).trim();
     if (!q) { textareaRef.current?.focus(); showToast('질문을 먼저 입력해 주세요.'); return; }
-    const res = await clients.legal.search(q);
+    let res;
+    try { res = await clients.legal.search(q); } catch { showToast('법령 검색 요청에 실패했습니다.'); return; }
     if (res.status === 'error') { showToast(res.error.message); return; }
     setQuestion(q);
     setHistory((h) => { const next = [q, ...h.filter((v) => v !== q)].slice(0, 8); safeSave(HISTORY_KEY, next); return next; });
@@ -76,6 +77,7 @@ export default function App() {
   };
 
   const copyAnswer = async () => {
+    if (!answer) return;
     const lead = answer.leadParts.map((p) => p.text).join('');
     const text = `질문: ${activeQuestion}\n\n${answer.title}\n${lead}\n\n※ UI 시연용 데이터이며 법령 조회 결과가 아닙니다.`;
     try { await navigator.clipboard.writeText(text); showToast('시연 답변을 복사했어요.'); }
@@ -96,11 +98,16 @@ export default function App() {
   };
 
   const changeModel = (id: string) => { setModelId(id); safeSave(MODEL_KEY, id); };
-  const changeBudget = async (n: number) => setSummary(await clients.usage.setBudget(n));
+  const changeBudget = async (n: number) => {
+    try { setSummary(await clients.usage.setBudget(n)); } catch { showToast('월 예산을 저장하지 못했습니다.'); }
+  };
 
   const applySampleUsage = async () => {
-    const draft = await clients.ai.sampleUsage(model.id);
-    const res = await clients.usage.record({ model: model.id, provider: model.provider, tier: model.tier }, draft);
+    let draft, res;
+    try {
+      draft = await clients.ai.sampleUsage(model.id);
+      res = await clients.usage.record({ model: model.id, provider: model.provider, tier: model.tier }, draft);
+    } catch { showToast('샘플 사용량을 반영하지 못했습니다.'); return; }
     setSummary(res.summary);
     if (res.status === 'blocked') { showToast('샘플 유료 사용량이 월 예산을 초과하므로 차단했습니다.'); return; }
     showToast(`시연 사용량 반영: 입력 ${draft.inputTokens.toLocaleString()} · 출력 ${draft.outputTokens.toLocaleString()} 토큰 / ₩${draft.costKRW.toLocaleString('ko-KR')}`);
@@ -116,12 +123,12 @@ export default function App() {
           <div className="content">
             <Hero />
             <QuestionSearch value={question} onChange={setQuestion} onSubmit={() => submitQuestion()} onChip={submitQuestion} textareaRef={textareaRef}
-              modelSelector={<ModelSelector models={MODELS} value={modelId} onChange={changeModel} />} />
+              modelSelector={<ModelSelector models={models} value={modelId} onChange={changeModel} />} />
             <div id="mainContent" style={{ display: showHome ? 'block' : 'none' }}>
               <div className="main-grid">
                 <section className="main-section" id="answerSection">
                   <div className="section-heading"><h2><Icon name="spark" style={{ color: '#607DDD' }} /> AI 법령 해설</h2><span className="subtle">답변 예시 미리보기</span></div>
-                  <AnswerCard key={answerVersion} answer={answer} saved={saved.includes(activeQuestion)} onToggleSave={toggleSave} onCopy={copyAnswer} />
+                  {answer ? <AnswerCard key={answerVersion} answer={answer} saved={saved.includes(activeQuestion)} onToggleSave={toggleSave} onCopy={copyAnswer} /> : <div className="surface-card answer-card"><div className="answer-top"><div className="notice"><Icon name="info" size="sm" /><span>예시 답변을 불러오지 못했습니다. 질문을 다시 입력해 주세요.</span></div></div></div>}
                 </section>
                 <aside className="side-section">
                   <div className="section-heading"><h2>실무 도구</h2><span className="subtle">자주 사용하는 기능</span></div>

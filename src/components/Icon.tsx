@@ -2,11 +2,11 @@ import type { CSSProperties } from 'react';
 
 export type IconName = 'home' | 'search' | 'book' | 'bookmark' | 'calc' | 'arrow' | 'spark' | 'moon' | 'sun' | 'copy' | 'clock' | 'info' | 'file' | 'check' | 'settings' | 'external';
 
-interface Props { name: IconName; size?: 'sm' | 'lg'; style?: CSSProperties }
+interface Props { name: IconName; size?: 'sm' | 'lg'; className?: string; style?: CSSProperties }
 
-export function Icon({ name, size, style }: Props) {
+export function Icon({ name, size, className, style }: Props) {
   return (
-    <svg className={`icon${size ? ` ${size}` : ''}`} style={style}>
+    <svg className={`icon${size ? ` ${size}` : ''}${className ? ` ${className}` : ''}`} style={style}>
       <use href={`#i-${name}`} />
     </svg>
   );

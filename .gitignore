@@ -2,3 +2,5 @@ node_modules
 dist
 *.log
 .captures
+test-results
+playwright-report
