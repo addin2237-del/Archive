@@ -1,0 +1,47 @@
+name: Probe law.go.kr API
+
+# 수동 실행 전용. 법제처 API 연결과 OC 인증을 확인하고, 원본 응답(OC 마스킹)을 law-probe-results 브랜치에 보관한다.
+# 필요: 저장소 Settings → Secrets and variables → Actions 에 LAW_OC 등록
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check secret exists
+        env:
+          LAW_OC: ${{ secrets.LAW_OC }}
+        run: |
+          if [ -z "$LAW_OC" ]; then echo "::error::LAW_OC 시크릿이 등록되지 않았습니다 (Settings → Secrets and variables → Actions)"; exit 1; fi
+      - name: Run probe
+        id: probe
+        continue-on-error: true   # 이상 징후(exit 1)가 있어도 결과는 보관한다
+        env:
+          LAW_OC: ${{ secrets.LAW_OC }}
+        run: node scripts/probe-law-api.mjs
+      - name: Verify OC is not present in saved files
+        env:
+          LAW_OC: ${{ secrets.LAW_OC }}
+        run: |
+          if grep -rqF -- "$LAW_OC" tests/fixtures/law; then echo "::error::보관 파일에 OC 값이 남아 있습니다. 커밋하지 않습니다"; exit 1; fi
+      - name: Publish results to law-probe-results branch
+        run: |
+          set -e
+          mkdir -p /tmp/out && cp -r tests/fixtures/law/raw tests/fixtures/law/probe-report.json /tmp/out/ 2>/dev/null || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan law-probe-results
+          git rm -rf . >/dev/null 2>&1 || true
+          cp -r /tmp/out/* . 2>/dev/null || true
+          echo "probe run ${{ github.run_id }} at $(date -u +%FT%TZ) — probe step outcome: ${{ steps.probe.outcome }}" > RUN.txt
+          git add -A
+          git commit -m "law probe results (run ${{ github.run_id }})"
+          git push -f origin law-probe-results
